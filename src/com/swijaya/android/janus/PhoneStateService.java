@@ -52,17 +52,18 @@ public class PhoneStateService extends Service {
             Bundle extras = intent.getExtras();
             assert (extras != null);
             
-            int phoneState = extras.getInt(PhoneStateReceiver.EXTRA_PHONE_STATE, 0xffffffff);
+            PhoneState phoneState = (PhoneState) extras.getSerializable(PhoneStateReceiver.EXTRA_PHONE_STATE);
+            assert (phoneState != null);
             switch (phoneState) {
-                case PhoneStateReceiver.EXTRA_STATE_RINGING:
-                case PhoneStateReceiver.EXTRA_STATE_OUTGOING:
+                case RINGING:
+                case OUTGOING:
                     String phoneNumber = extras.getString(PhoneStateReceiver.EXTRA_PHONE_NUMBER);
                     assert (phoneNumber != null);
                     
                     mCurrentCall = new PhoneCall(phoneNumber);
                     Log.d(TAG, "Current call: " + mCurrentCall.toString());
                     break;
-                case PhoneStateReceiver.EXTRA_STATE_OFFHOOK:
+                case OFFHOOK:
                 	// this state might be reentrant on an existing call!
                 	// TODO
                     mActiveCalls.push(mCurrentCall);
@@ -77,7 +78,7 @@ public class PhoneStateService extends Service {
                     	// TODO
                     }
                     break;
-                case PhoneStateReceiver.EXTRA_STATE_IDLE:
+                case IDLE:
                 	// this state is reached when all calls are completed
                     Log.d(TAG, "Stopping foreground service");
                     stopForeground(true);
