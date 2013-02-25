@@ -66,6 +66,7 @@ public class PhoneStateService extends Service {
                 	// this state might be reentrant on an existing call!
                 	// TODO
                     mActiveCalls.push(mCurrentCall);
+                    Log.d(TAG, "Current active calls count: " + Integer.toString(mActiveCalls.size()));
                     // move this service on foreground the first time it handles an active call
                     if (mActiveCalls.size() == 1) {
                     	Log.d(TAG, "Starting foreground service");
@@ -110,6 +111,7 @@ public class PhoneStateService extends Service {
     	Log.d(TAG, "Draining all active calls");
     	try {
 	    	for (PhoneCall call = mActiveCalls.pop(); call != null; mActiveCalls.pop()) {
+	    		Log.d(TAG, "Stop call: " + call.toString());
 	    		// TODO
 	    	}
     	} catch (EmptyStackException e) {
