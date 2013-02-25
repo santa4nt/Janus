@@ -1,5 +1,8 @@
 package com.swijaya.android.janus;
 
+import java.util.EmptyStackException;
+import java.util.Stack;
+
 import android.app.Notification;
 import android.app.Service;
 import android.content.Intent;
@@ -12,7 +15,8 @@ public class PhoneStateService extends Service {
     
     private static final String TAG = "PhoneStateService";
 
-    private PhoneCall currentCall;
+    private Stack<PhoneCall> mActiveCalls;
+    private PhoneCall mCurrentCall;
     
     @Override
     public IBinder onBind(Intent intent) {
@@ -23,7 +27,8 @@ public class PhoneStateService extends Service {
     public void onCreate() {
         super.onCreate();
         Log.v(TAG, "onCreate: service starting");
-        currentCall = null;
+        mActiveCalls = new Stack<PhoneCall>();
+        mCurrentCall = null;
     }
     
     @Override
@@ -37,9 +42,10 @@ public class PhoneStateService extends Service {
         Log.v(TAG, "onStartCommand");
 
         if (intent == null) {
-            // started after the system had to stop an ongoing service for
-            // some reason
+            // we are restarted after the system had to stop an ongoing
+        	// service for some reason
             Log.w(TAG, "onStartCommand: reentrant");
+            // not sure how to handle this yet, some sort of state persistence?
         }
         else {
             Bundle extras = intent.getExtras();
@@ -52,26 +58,27 @@ public class PhoneStateService extends Service {
                     String phoneNumber = extras.getString(PhoneStateReceiver.EXTRA_PHONE_NUMBER);
                     assert (phoneNumber != null);
                     
-                    currentCall = new PhoneCall(phoneNumber);
-                    Log.d(TAG, "Current call: " + currentCall.toString());
+                    mCurrentCall = new PhoneCall(phoneNumber);
+                    Log.d(TAG, "Current call: " + mCurrentCall.toString());
                     break;
                 case PhoneStateReceiver.EXTRA_STATE_OFFHOOK:
+                	// this state might be reentrant on an existing call!
+                	// TODO
                     Log.d(TAG, "Starting foreground service");
-                    startForeground(currentCall.getID(), createOngoingCallNotification());
+                    startForeground(mCurrentCall.getID(), createOngoingCallNotification());
+                    mActiveCalls.push(mCurrentCall);
                     break;
                 case PhoneStateReceiver.EXTRA_STATE_IDLE:
+                	// this state is reached when all calls are completed
                     Log.d(TAG, "Stopping foreground service");
                     stopForeground(true);
-                    currentCall = null;
+                    drainActiveCalls();
+                    Log.d(TAG, "Stopping service");
+                    stopService(intent);
                     break;            
                 default:
                     assert (false);
                     break;
-            }
-            
-            if (currentCall == null) {
-                Log.d(TAG, "Stopping service");
-                stopService(intent);
             }
         }
 
@@ -89,6 +96,18 @@ public class PhoneStateService extends Service {
                 .setContentText(getText(R.string.notification_message));
         
         return builder.build();
+    }
+    
+    private void drainActiveCalls() {
+    	Log.d(TAG, "Draining all active calls");
+    	try {
+	    	for (PhoneCall call = mActiveCalls.pop(); call != null; mActiveCalls.pop()) {
+	    		// TODO
+	    	}
+    	} catch (EmptyStackException e) {
+    		// done
+    	}
+    	mCurrentCall = null;
     }
 
 }
