@@ -14,6 +14,7 @@ import android.util.Log;
 public class PhoneStateService extends Service {
     
     private static final String TAG = "PhoneStateService";
+    private static final int ONGOING_NOTIFICATION = 0x00000001;
 
     private Stack<PhoneCall> mActiveCalls;
     private PhoneCall mCurrentCall;
@@ -64,9 +65,16 @@ public class PhoneStateService extends Service {
                 case PhoneStateReceiver.EXTRA_STATE_OFFHOOK:
                 	// this state might be reentrant on an existing call!
                 	// TODO
-                    Log.d(TAG, "Starting foreground service");
-                    startForeground(mCurrentCall.getID(), createOngoingCallNotification());
                     mActiveCalls.push(mCurrentCall);
+                    // move this service on foreground the first time it handles an active call
+                    if (mActiveCalls.size() == 1) {
+                    	Log.d(TAG, "Starting foreground service");
+                    	startForeground(ONGOING_NOTIFICATION, createOngoingCallNotification());
+                    }
+                    // for additional calls, update the ongoing notification
+                    else if (mActiveCalls.size() > 1) {
+                    	// TODO
+                    }
                     break;
                 case PhoneStateReceiver.EXTRA_STATE_IDLE:
                 	// this state is reached when all calls are completed
