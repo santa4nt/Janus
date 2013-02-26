@@ -18,6 +18,7 @@ public class PhoneStateService extends Service {
 
     private Stack<PhoneCall> mActiveCalls;
     private PhoneCall mCurrentCall;
+    private boolean mActive;
     
     @Override
     public IBinder onBind(Intent intent) {
@@ -30,6 +31,7 @@ public class PhoneStateService extends Service {
         Log.v(TAG, "onCreate: service starting");
         mActiveCalls = new Stack<PhoneCall>();
         mCurrentCall = null;
+        mActive = false;
     }
     
     @Override
@@ -62,7 +64,14 @@ public class PhoneStateService extends Service {
                     
                     mCurrentCall = new PhoneCall(phoneNumber);
                     Log.d(TAG, "Current call: " + mCurrentCall.toString());
-                    break;
+                    
+                    // if user is making a call while an active call is ongoing,
+                    // we won't re-enter the OFFHOOK state again;
+                    // but if the user receives a call while an active call is ongoing,
+                    // we WILL re-enter the OFFHOOK state again!
+                    if (!mActive || phoneState == PhoneState.RINGING) {
+                    	break;
+                    }
                 case OFFHOOK:
                 	// this state might be reentrant on an existing call!
                 	// TODO
@@ -77,17 +86,19 @@ public class PhoneStateService extends Service {
                     else if (mActiveCalls.size() > 1) {
                     	// TODO
                     }
+                    
+                    mActive = true;
                     break;
                 case IDLE:
                 	// this state is reached when all calls are completed
                     Log.d(TAG, "Stopping foreground service");
                     stopForeground(true);
+                    
+                    mActive = false;
                     drainActiveCalls();
+                    
                     Log.d(TAG, "Stopping service");
                     stopService(intent);
-                    break;            
-                default:
-                    assert (false);
                     break;
             }
         }
@@ -111,7 +122,7 @@ public class PhoneStateService extends Service {
     private void drainActiveCalls() {
     	Log.d(TAG, "Draining all active calls");
     	try {
-	    	for (PhoneCall call = mActiveCalls.pop(); call != null; mActiveCalls.pop()) {
+	    	for (PhoneCall call = mActiveCalls.pop(); call != null; call = mActiveCalls.pop()) {
 	    		Log.d(TAG, "Stop call: " + call.toString());
 	    		// TODO
 	    	}
