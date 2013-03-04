@@ -74,7 +74,6 @@ public class PhoneStateService extends Service {
                     }
                 case OFFHOOK:
                 	// this state might be reentrant on an existing call!
-                	// TODO
                     mActiveCalls.push(mCurrentCall);
                     Log.d(TAG, "Current active calls count: " + Integer.toString(mActiveCalls.size()));
                     // move this service on foreground the first time it handles an active call
