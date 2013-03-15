@@ -1,2 +1,7 @@
 bin/
 gen/
+
+# user-specific IDEA setting
+.idea/workspace.xml
+.idea/tasks.xml
+
